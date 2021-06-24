@@ -29,10 +29,10 @@ def resize(event, context):
     record = event['Records'][0]
     key = unquote_plus(record['s3']['object']['key'])
     download_path = '/tmp/{}{}'.format(uuid.uuid4(), key.split('/')[-1])
-    upload_path = key.replace('image_raw/raw', 'image_resized/image')
+    upload_path = key.replace('raw', 'resized')
     s3_client.download_file(bucket, key, download_path)
     resize_image(download_path, bucket, upload_path)
-    advertisements_table.update_item(Key={'title': key.split('/')[-3]},
+    advertisements_table.update_item(Key={'title': key.split('/')[-2]},
                                         UpdateExpression="set image_resized = :r",
                                         ExpressionAttributeValues={':r': f"https://{bucket}.s3.eu-west-1.amazonaws.com/{upload_path}"}
                                     )

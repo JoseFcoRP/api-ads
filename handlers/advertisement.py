@@ -14,8 +14,6 @@ with open('schemas/advertisement_post.json','r') as file:
 def list(event, context):
     ann = advertisements_table.scan(Select='SPECIFIC_ATTRIBUTES', AttributesToGet=['title'])
     advertisements = [x['title'] for x in ann.get("Items", [])]
-    print(advertisements)
-    print(ann)
     if not advertisements:
         return {"statusCode": 404, "body": "No advertisements found"}
     else:
@@ -41,7 +39,7 @@ def publish(event, context):
         return {"statusCode": 400, "body": "No se ha indicado body"}
     validate(instance=body, schema=schema_post)
     
-    path = f"advertisements/{body['title']}/image_raw/raw.{body['image_ext']}"
+    path = f"advertisements/image_raw/{body['title']}/raw.{body['image_ext']}"
     image_url = f"https://{bucket}.s3.eu-west-1.amazonaws.com/{path}"
     image_decoded = base64.b64decode(body['image'])
     obj = s3.Object(bucket,path)

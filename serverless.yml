@@ -9,17 +9,25 @@ provider:
     DDB_CHATS: chats
     DDB_AD: advertisements
     Bucket: !Ref S3BucketImages
+    THRESHOLD: ${self:custom.threshold}
 
 plugins:
   - serverless-python-requirements
   - serverless-plugin-existing-s3
 custom:
   bucketName: ${opt:stage, 'demo'}-${self:service.name}-images-ad
+  threshold: 7
   poolName: ${opt:stage, 'demo'}-${self:service.name}-pool
   clientPoolName: ${opt:stage, 'demo'}-${self:service.name}-client-pool
 
 
 functions:
+  cleaner:
+    handler: handlers/cleaner.delete_ads
+    role: lambdaRole
+    events:
+      - schedule:
+          rate: rate(10 minutes)
   get_chat:
     handler: handlers/chat.get_chat
     role: lambdaRole
@@ -89,7 +97,7 @@ functions:
           bucket: ${self:custom.bucketName}
           event: s3:ObjectCreated:*
           rules:
-            - prefix: advertisements/
+            - prefix: advertisements/image_raw
           existing: true
 resources:
   Resources:
@@ -145,6 +153,7 @@ resources:
                     - dynamodb:PutItem
                     - dynamodb:Scan
                     - dynamodb:UpdateItem
+                    - dynamodb:DeleteItem
                   Resource:
                     - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DDB_CHATS}"
                     - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DDB_AD}"
@@ -160,6 +169,11 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.bucketName}
+        LifecycleConfiguration:
+          Rules:
+            - Id: Expiration
+              Status: Enabled
+              ExpirationInDays: ${self:custom.threshold}
     anunciosPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:

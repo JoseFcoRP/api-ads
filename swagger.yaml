@@ -18,20 +18,22 @@ paths:
         schema:
           $ref: "#/definitions/AdPost"
       responses:
-        "405":
-          description: "Invalid input"
+        "201":
+          description: "Created"
     get:
       tags:
       - "advertisement"
       summary: "Get all existing ads"
       description: ""
       responses:
-        "400":
-          description: "Invalid ID supplied"
         "404":
-          description: "Pet not found"
-        "405":
-          description: "Validation exception"
+          description: "No advertisements found"
+        "200":
+          description: "Get succeded"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/AdName"
     
   /advertisement/{title}:
     get:
@@ -46,18 +48,20 @@ paths:
         type: "string"
       description: ""
       responses:
-        "400":
-          description: "Invalid ID supplied"
         "404":
-          description: "Pet not found"
-        "405":
-          description: "Validation exception"
+          description: "No advertisement found"
+        "200":
+          description: "Get succeded"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/AdDescription"
           
   /chat/{title}:
     post:
       tags:
       - "advertisement"
-      summary: "Add a new ad"
+      summary: "Add a comment to ad"
       parameters:
       - name: "title"
         in: "path"
@@ -69,14 +73,16 @@ paths:
         description: "AD info"
         required: true
         schema:
-          $ref: "#/definitions/AdPost"
+          $ref: "#/definitions/Message"
       responses:
-        "405":
-          description: "Invalid input"
+        "404":
+          description: "No advertisement found"
+        "201":
+          description: "Created"
     get:
       tags:
       - "advertisement"
-      summary: "Get an existing ad"
+      summary: "Get all comments from ad"
       parameters:
       - name: "title"
         in: "path"
@@ -85,19 +91,95 @@ paths:
         type: "string"
       description: ""
       responses:
-        "400":
-          description: "Invalid ID supplied"
         "404":
-          description: "Pet not found"
-        "405":
-          description: "Validation exception"
+          description: "No advertisement found"
+        "200":
+          description: "Get succeded"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Message"
+
+
+          
+  /chat/{title}/{user}:
+    post:
+      tags:
+      - "advertisement"
+      summary: "Send a message in private chat"
+      parameters:
+      - name: "title"
+        in: "path"
+        description: "Title of ad"
+        required: true
+        type: "string"
+      - name: "user"
+        in: "path"
+        description: "User mail"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "body"
+        description: "AD info"
+        required: true
+        schema:
+          $ref: "#/definitions/MessagePost"
+      responses:
+        "404":
+          description: "No advertisement found"
+        "201":
+          description: "Created"
+    get:
+      tags:
+      - "advertisement"
+      summary: "Send all messages from private chat"
+      parameters:
+      - name: "title"
+        in: "path"
+        description: "Title of ad"
+        required: true
+        type: "string"
+      - name: "user"
+        in: "path"
+        description: "User mail"
+        required: true
+        type: "string"
+      description: ""
+      responses:
+        "404":
+          description: "No advertisement found"
+        "403":
+          description: "Usuario no permitido"
+        "200":
+          description: "Get succeded"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Message"
 
 definitions:
+  AdDescription:
+    type: "object"
+    properties:
+      title:
+        type: "string"
+        example: "Humo"
+      description:
+        type: "string"
+        example: "Vendo humo"
+      image_url:
+        type: "string"
+        example: "Ruta s3 de la imagen"
+  AdName:
+    type: "string"
   AdPost:
     type: "object"
     required:
-    - "name"
-    - "photoUrls"
+    - "title"
+    - "description"
+    - "image"
+    - "image_ext"
+    - "mimetype"
     properties:
       title:
         type: "string"
@@ -114,3 +196,23 @@ definitions:
       mimetype:
         type: "string"
         example: "mimetype para la imagen"
+  MessagePost:
+    type: "object"
+    required:
+    - "message"
+    properties:
+      message:
+        type: "string"
+        example: "Hola mundo"
+  Message:
+    type: "object"
+    properties:
+      fecha_hora:
+        type: "string"
+        example: "Timestamp ISO"
+      user_id:
+        type: "string"
+        example: "Mail del usuario"
+      message:
+        type: "string"
+        example: "Hola mundo"
