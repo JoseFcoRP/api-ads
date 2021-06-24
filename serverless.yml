@@ -1,0 +1,212 @@
+service: anuncios
+
+provider:
+  name: aws
+  stage: demo
+  runtime: python3.8
+  region: eu-west-1
+  environment:
+    DDB_CHATS: chats
+    DDB_AD: advertisements
+    Bucket: !Ref S3BucketImages
+
+plugins:
+  - serverless-python-requirements
+  - serverless-plugin-existing-s3
+custom:
+  bucketName: ${opt:stage, 'demo'}-${self:service.name}-images-ad
+  poolName: ${opt:stage, 'demo'}-${self:service.name}-pool
+  clientPoolName: ${opt:stage, 'demo'}-${self:service.name}-client-pool
+
+
+functions:
+  get_chat:
+    handler: handlers/chat.get_chat
+    role: lambdaRole
+    events:
+      - http:
+          path: /chat/{title}
+          method: get
+      - http:
+          path: /chat/{title}/{user}
+          method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+  send_message:
+    handler: handlers/chat.send_message
+    role: lambdaRole
+    events:
+      - http:
+          path: /chat/{title}
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+      - http:
+          path: /chat/{title}/{user}
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+  publish_ann:
+    handler: handlers/advertisement.publish
+    role: lambdaRole
+    events:
+      - http:
+          path: /advertisement
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+  list_ann:
+    handler: handlers/advertisement.list
+    role: lambdaRole
+    events:
+      - http:
+          path: /advertisement
+          method: get
+  get_ann:
+    handler: handlers/advertisement.get
+    role: lambdaRole
+    events:
+      - http:
+          path: /advertisement/{title}
+          method: get
+          request:
+            parameters:
+              paths:
+                title: true
+  resize:
+    handler: handlers/resize.resize
+    role: lambdaRole
+    events:
+      - s3:
+          bucket: ${self:custom.bucketName}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: advertisements/
+          existing: true
+resources:
+  Resources:
+    DynamoAdvertisementsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DDB_AD}
+        AttributeDefinitions:
+          - AttributeName: title
+            AttributeType: S
+        KeySchema:
+          - AttributeName: title
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    DynamoChatsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DDB_CHATS}
+        AttributeDefinitions:
+          - AttributeName: chat_id
+            AttributeType: S
+          - AttributeName: fecha_hora
+            AttributeType: S
+        KeySchema:
+          - AttributeName: chat_id
+            KeyType: HASH
+          - AttributeName: fecha_hora
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    lambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LambdaRole
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: DDB_Query_Put
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - dynamodb:Query
+                    - dynamodb:PutItem
+                    - dynamodb:Scan
+                    - dynamodb:UpdateItem
+                  Resource:
+                    - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DDB_CHATS}"
+                    - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DDB_AD}"
+                - Effect: "Allow"
+                  Action:
+                    - s3:*
+                  Resource:
+                    - "*"
+        ManagedPolicyArns: 
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+    S3BucketImages:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+    anunciosPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3BucketImages
+        PolicyDocument:
+          Statement:
+            -
+              Action:
+                - s3:GetObject
+              Effect: Allow
+              Resource:
+                - !Sub arn:aws:s3:::${S3BucketImages}/*
+              Principal:
+                AWS:
+                  - '*'
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        MfaConfiguration: OFF
+        UserPoolName: ${self:custom.poolName}
+        UsernameAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+            RequireLowercase: False
+            RequireNumbers: False
+            RequireSymbols: False
+            RequireUppercase: False
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.clientPoolName}
+        GenerateSecret: False
+        ExplicitAuthFlows:
+          - ADMIN_NO_SRP_AUTH
+        UserPoolId:
+          Ref: CognitoUserPool
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: cognito-authorizer
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        ProviderARNs:
+          - Fn::GetAtt: [CognitoUserPool, Arn]

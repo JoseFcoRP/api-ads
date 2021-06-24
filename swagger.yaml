@@ -1,0 +1,116 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "Anuncios"
+schemes:
+- "http"
+paths:
+  /advertisement:
+    post:
+      tags:
+      - "advertisement"
+      summary: "Add a new ad"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "AD info"
+        required: true
+        schema:
+          $ref: "#/definitions/AdPost"
+      responses:
+        "405":
+          description: "Invalid input"
+    get:
+      tags:
+      - "advertisement"
+      summary: "Get all existing ads"
+      description: ""
+      responses:
+        "400":
+          description: "Invalid ID supplied"
+        "404":
+          description: "Pet not found"
+        "405":
+          description: "Validation exception"
+    
+  /advertisement/{title}:
+    get:
+      tags:
+      - "advertisement"
+      summary: "Get an existing ad"
+      parameters:
+      - name: "title"
+        in: "path"
+        description: "Title of ad"
+        required: true
+        type: "string"
+      description: ""
+      responses:
+        "400":
+          description: "Invalid ID supplied"
+        "404":
+          description: "Pet not found"
+        "405":
+          description: "Validation exception"
+          
+  /chat/{title}:
+    post:
+      tags:
+      - "advertisement"
+      summary: "Add a new ad"
+      parameters:
+      - name: "title"
+        in: "path"
+        description: "Title of ad"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "body"
+        description: "AD info"
+        required: true
+        schema:
+          $ref: "#/definitions/AdPost"
+      responses:
+        "405":
+          description: "Invalid input"
+    get:
+      tags:
+      - "advertisement"
+      summary: "Get an existing ad"
+      parameters:
+      - name: "title"
+        in: "path"
+        description: "Title of ad"
+        required: true
+        type: "string"
+      description: ""
+      responses:
+        "400":
+          description: "Invalid ID supplied"
+        "404":
+          description: "Pet not found"
+        "405":
+          description: "Validation exception"
+
+definitions:
+  AdPost:
+    type: "object"
+    required:
+    - "name"
+    - "photoUrls"
+    properties:
+      title:
+        type: "string"
+        example: "Humo"
+      description:
+        type: "string"
+        example: "Vendo humo"
+      image:
+        type: "string"
+        example: "Imagen codificada en base64"
+      image_ext:
+        type: "string"
+        example: "extensión para la imagen"
+      mimetype:
+        type: "string"
+        example: "mimetype para la imagen"
