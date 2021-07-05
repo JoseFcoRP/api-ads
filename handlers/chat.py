@@ -24,7 +24,7 @@ def get_chat(event, context):
     if 'user' in event['pathParameters']:
         owner = ann['owner']
         user = event['requestContext']['authorizer']['claims']['email']
-        chat_id = title+event['pathParameters']['user']
+        chat_id = title+'/'+event['pathParameters']['user']
         if not (user == owner or user == event['pathParameters']['user']):
             return {"statusCode": 403, "body": f"Usuario no autorizado en el chat"}
     else:
@@ -54,7 +54,7 @@ def send_message(event, context):
     owner = ann['owner']
 
     if 'user' in event['pathParameters']:
-        chat_id = title+event['pathParameters']['user']
+        chat_id = title+'/'+event['pathParameters']['user']
         if not (user == owner or user == event['pathParameters']['user']):
             return {"statusCode": 403, "body": f"Usuario no autorizado en el chat"}
     else:

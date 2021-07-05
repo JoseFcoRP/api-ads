@@ -12,8 +12,16 @@ with open('schemas/advertisement_post.json','r') as file:
     schema_post = json.load(file)
 
 def list(event, context):
-    ann = advertisements_table.scan(Select='SPECIFIC_ATTRIBUTES', AttributesToGet=['title'])
+    queryparams = event.get("queryStringParameters")
+    prefix = None
+    if queryparams:
+        prefix = queryparams.get('prefix')
+    if prefix:
+        ann = advertisements_table.query(KeyConditionExpression=Key('title').begins_with(prefix))
+    else:
+        ann = advertisements_table.scan(Select='SPECIFIC_ATTRIBUTES', AttributesToGet=['title'])
     advertisements = [x['title'] for x in ann.get("Items", [])]
+
     if not advertisements:
         return {"statusCode": 404, "body": "No advertisements found"}
     else:

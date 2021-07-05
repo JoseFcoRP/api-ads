@@ -24,6 +24,11 @@ paths:
       tags:
       - "advertisement"
       summary: "Get all existing ads"
+      parameters:
+      - in: "query"
+        name: "prefix"
+        type: "string"
+        description: "Prefix to search"
       description: ""
       responses:
         "404":
@@ -132,7 +137,7 @@ paths:
     get:
       tags:
       - "advertisement"
-      summary: "Send all messages from private chat"
+      summary: "Get all messages from private chat"
       parameters:
       - name: "title"
         in: "path"
